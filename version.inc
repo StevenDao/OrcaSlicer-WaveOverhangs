@@ -15,13 +15,13 @@ endif()
 # NSIS packaging (installer filename, product version). A non-"dev" suffix here
 # made the Windows NSIS installer build fail, so the fork identifier lives in
 # SLIC3R_GCODE_VERSION below instead.
-set(SoftFever_VERSION "2.4.0-dev")
+set(SoftFever_VERSION "2.5.0-dev")
 # Gcode-header version string only. Read by header_slic3r_generated() so the
-# gcode reads "OrcaSlicer 2.4.0-WaveOverhangs on ...", matching the convention
-# other Orca forks use (e.g. "OrcaSlicer 2.4.0-Nanashi") and accepted by firmware
+# gcode reads "OrcaSlicer 2.5.0-WaveOverhangs on ...", matching the convention
+# other Orca forks use (e.g. "OrcaSlicer 2.5.0-Nanashi") and accepted by firmware
 # parsers like Snapmaker U1 that reject the "OrcaSlicer-WaveOverhangs" prefix.
 # Does NOT feed CPack, so it can carry the fork suffix safely.
-set(SLIC3R_GCODE_VERSION "2.4.0-WaveOverhangs")
+set(SLIC3R_GCODE_VERSION "2.5.0-WaveOverhangs")
 # Wave-overhangs fork version, bumped per git tag at release time
 # (patched by .github/workflows/release.yml). Keep as "dev" on main branch.
 set(WAVE_OVERHANGS_VERSION "dev")
@@ -31,7 +31,7 @@ set(ORCA_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(ORCA_VERSION_MINOR ${CMAKE_MATCH_2})
 set(ORCA_VERSION_PATCH ${CMAKE_MATCH_3})
 
-set(SLIC3R_VERSION "01.10.01.50")
+set(SLIC3R_VERSION "02.08.01.55")
 
 if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
     set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")

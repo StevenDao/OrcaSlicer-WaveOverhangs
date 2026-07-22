@@ -49,3 +49,6 @@ internal_docs/
 # local scratch
 tmp/
 
+# Python bytecode
+__pycache__/
+*.pyc
