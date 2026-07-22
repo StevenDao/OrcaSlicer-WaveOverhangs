@@ -139,6 +139,18 @@ elseif(APPLE)
     # the post-install -add_rpath below.
     set(_python_ldflags "${_python_arch_flags} -Wl,-headerpad_max_install_names")
 
+    # macOS clang searches /usr/local/include by default, so an x86_64 Homebrew
+    # gettext there gets detected by configure (HAVE_LIBINTL_H=1); the arm64
+    # target link then fails on undefined _libintl_* symbols. Command-line
+    # ac_cv_* presets don't survive the config.status --recheck that
+    # --enable-optimizations (PGO) triggers during `make`, but a config.site is
+    # re-sourced on every configure invocation (initial build + every recheck),
+    # so it reliably keeps libintl out. The embedded Python needs no gettext.
+    set(_python_config_site "${CMAKE_CURRENT_BINARY_DIR}/dep_python3_config.site")
+    file(WRITE "${_python_config_site}"
+        "ac_cv_header_libintl_h=no\n"
+        "ac_cv_lib_intl_textdomain=no\n")
+
     if(IS_CROSS_COMPILE)
         set(_python_build_tgt --build=${_python_build_arch}-apple-darwin --host=${_python_host_arch}-apple-darwin)
         set(_python_build_arch_flags "-arch ${_python_build_arch_flag} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -172,6 +184,7 @@ elseif(APPLE)
                CXXFLAGS='${_python_arch_flags}' \
                LDFLAGS='${_python_ldflags}' \
                MACOSX_DEPLOYMENT_TARGET='${CMAKE_OSX_DEPLOYMENT_TARGET}' \
+               CONFIG_SITE='${_python_config_site}' \
                ./configure \
                  --prefix='${DESTDIR}/libpython' \
                  --enable-shared \
@@ -181,7 +194,9 @@ elseif(APPLE)
                  --disable-test-modules \
                  ${_python_build_tgt} \
                  --with-build-python='${_python_build_python}' \
-                 py_cv_module__tkinter=n/a"
+                 py_cv_module__tkinter=n/a \
+                 ac_cv_header_libintl_h=no \
+                 ac_cv_lib_intl_textdomain=no"
         )
     else()
         set(_python_build_tgt --build=${_python_host_arch}-apple-darwin)
@@ -193,6 +208,7 @@ elseif(APPLE)
             "CXXFLAGS=${_python_arch_flags}"
             "LDFLAGS=${_python_ldflags}"
             "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+            "CONFIG_SITE=${_python_config_site}"
             ./configure
             --prefix=${DESTDIR}/libpython
             --enable-shared
@@ -204,9 +220,21 @@ elseif(APPLE)
             # Tcl/Tk 9.0 (e.g. from Homebrew) is incompatible with CPython 3.12's
             # _tkinter; OrcaSlicer's embedded Python does not need tkinter anyway.
             py_cv_module__tkinter=n/a
+            # Apple clang searches /usr/local/include by default, so a Homebrew
+            # gettext there makes configure use libintl.h; if that Homebrew is
+            # x86_64 (Rosetta brew) the arm64 link then fails with missing
+            # _libintl_* symbols. The embedded Python doesn't need gettext, so
+            # suppress both the header (drops the libintl_* macro renames in
+            # _localemodule.c) and the -lintl lib check (drops the wrong-arch
+            # library from LIBS).
+            ac_cv_header_libintl_h=no
+            ac_cv_lib_intl_textdomain=no
         )
     endif()
-    set(_build_cmd make -j${NPROC})
+    # CONFIG_SITE must be in the environment of `make` too: --enable-optimizations
+    # re-runs ./config.status --recheck mid-build, which re-invokes configure and
+    # must re-source the config.site to keep libintl suppressed.
+    set(_build_cmd env "CONFIG_SITE=${_python_config_site}" make -j${NPROC})
 
     # CPython stamps libpython with an absolute install name ($prefix/lib/...),
     # which every consumer inherits at link time and which only exists on the
